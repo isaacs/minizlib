@@ -265,9 +265,22 @@ class Zlib extends MiniPass {
 
     // this is called after each pass of the do()while below
     // it returns true if we can push more data through.
-    const callback = (availInAfter, availOutAfter) => {
+    assert(this[_handle], 'zlib binding closed')
+    do {
+      let res = this[_handle].writeSync(
+        flushFlag,
+        chunk, // in
+        inOff, // in_off
+        availInBefore, // in_len
+        this[_buffer], // out
+        this[_offset], //out_off
+        availOutBefore // out_len
+      )
       if (this[_hadError])
-        return
+        break
+
+      let availInAfter = res[0]
+      let availOutAfter = res[1]
 
       const have = availOutBefore - availOutAfter
       assert(have >= 0, 'have should not go down')
@@ -296,25 +309,10 @@ class Zlib extends MiniPass {
         // it'll have the correct byte counts.
         inOff += (availInBefore - availInAfter)
         availInBefore = availInAfter
-
-        return true
+        continue
       }
-      return false
-    }
-
-    assert(this[_handle], 'zlib binding closed')
-    let res
-    do {
-      res = this[_handle].writeSync(
-        flushFlag,
-        chunk, // in
-        inOff, // in_off
-        availInBefore, // in_len
-        this[_buffer], // out
-        this[_offset], //out_off
-        availOutBefore // out_len
-      )
-    } while (!this[_hadError] && callback(res[0], res[1]))
+      break
+    } while (!this[_hadError])
 
     return writeReturn
   }
