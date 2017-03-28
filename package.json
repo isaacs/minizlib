@@ -24,7 +24,7 @@
     "unzip"
   ],
   "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "tap": "^10.3.0"
   },
