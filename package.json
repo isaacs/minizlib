@@ -1,0 +1,31 @@
+{
+  "name": "minizlib",
+  "version": "0.0.0",
+  "description": "A smaller, faster, zlib stream built on [minipass](http://npm.im/minipass) and Node.js's zlib binding.",
+  "main": "index.js",
+  "dependencies": {
+    "minipass": "^1.1.1"
+  },
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isaacs/minizlib.git"
+  },
+  "keywords": [
+    "zlib",
+    "gzip",
+    "gunzip",
+    "deflate",
+    "inflate",
+    "compression",
+    "zip",
+    "unzip"
+  ],
+  "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
+  "license": "ISC",
+  "devDependencies": {
+    "tap": "^10.3.0"
+  }
+}
