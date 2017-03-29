@@ -32,6 +32,7 @@
     "tap": "^10.3.0"
   },
   "files": [
-    "index.js"
+    "index.js",
+    "constants.js"
   ]
 }
