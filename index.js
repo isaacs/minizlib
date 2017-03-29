@@ -217,9 +217,6 @@ class Zlib extends MiniPass {
     const flushFlag = this[_flushFlag]
     let writeReturn = true
 
-
-    // this is called after each pass of the do()while below
-    // it returns true if we can push more data through.
     assert(this[_handle], 'zlib binding closed')
     do {
       let res = this[_handle].writeSync(
