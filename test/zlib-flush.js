@@ -22,7 +22,7 @@ deflater.write(chunk)
 deflater.flush(zlib.constants.Z_NO_FLUSH)
 actualNone = deflater.read()
 deflater.flush()
-const bufs = [
+const bufs = []
 let buf
 while (buf = deflater.read()) {
   bufs.push(buf)
@@ -31,3 +31,10 @@ actualFull = Buffer.concat(bufs)
 
 t.same(actualNone, expectedNone)
 t.same(actualFull, expectedFull)
+
+deflater.end()
+deflater.flush()
+t.notEqual(deflater.read(), null)
+t.ok(deflater.ended)
+deflater.flush()
+t.equal(deflater.read(), null)
