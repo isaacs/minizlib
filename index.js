@@ -152,12 +152,17 @@ class Zlib extends MiniPass {
   params (level, strategy) {
     if (!this[_handle])
       throw new Error('cannot switch params when binding is closed')
+
+    // no way to test this without also not supporting params at all
+    /* istanbul ignore if */
     if (!this[_handle].params)
-      throw new Error('')
+      throw new Error('not supported in this implementation')
+
     if (level < constants.Z_MIN_LEVEL ||
         level > constants.Z_MAX_LEVEL) {
       throw new RangeError('Invalid compression level: ' + level)
     }
+
     if (!(strategies.has(strategy)))
       throw new TypeError('Invalid strategy: ' + strategy)
 
@@ -165,6 +170,7 @@ class Zlib extends MiniPass {
       this.flush(constants.Z_SYNC_FLUSH)
       assert(this[_handle], 'zlib binding closed')
       this[_handle].params(level, strategy)
+      /* istanbul ignore else */
       if (!this[_hadError]) {
         this[_level] = level
         this[_strategy] = strategy
@@ -266,6 +272,8 @@ class Zlib extends MiniPass {
       break
     } while (!this[_hadError])
 
+    if (cb)
+      cb()
     return writeReturn
   }
 }

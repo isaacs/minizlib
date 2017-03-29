@@ -8,8 +8,9 @@ gz.on('data', function(c) {
   received += c.length
 })
 
-t.plan(1)
+t.plan(2)
 gz.on('end', _ => {
   t.equal(received, 20)
 })
-gz.end(emptyBuffer)
+gz.write(emptyBuffer, _ => t.pass('called write cb'))
+gz.end()

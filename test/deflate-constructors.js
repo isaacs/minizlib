@@ -14,7 +14,7 @@ t.equal(zlib.constants.Z_MAX_CHUNK, Infinity)
 
 // Throws if `opts.windowBits` is invalid
 t.throws(
-  _ => new zlib.Deflate({windowBits: -Infinity}),
+  _ => new zlib.Deflate({windowBits: -Infinity, chunkSize: 12345}),
   new Error('Invalid windowBits: -Infinity')
 )
 
