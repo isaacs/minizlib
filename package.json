@@ -1,6 +1,6 @@
 {
   "name": "minizlib",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "A small fast zlib stream built on [minipass](http://npm.im/minipass) and Node.js's zlib binding.",
   "main": "index.js",
   "dependencies": {
