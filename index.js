@@ -4,7 +4,7 @@ const assert = require('assert')
 const Buffer = require('buffer').Buffer
 const binding = process.binding('zlib')
 
-const constants = require('./constants.js')
+const constants = exports.constants = require('./constants.js')
 const MiniPass = require('minipass')
 
 // translation table for return codes.

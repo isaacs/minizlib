@@ -1,4 +1,4 @@
-module.exports = {
+module.exports = Object.freeze({
   Z_NO_FLUSH: 0,
   Z_PARTIAL_FLUSH: 1,
   Z_SYNC_FLUSH: 2,
@@ -43,4 +43,4 @@ module.exports = {
   Z_MIN_LEVEL: -1,
   Z_MAX_LEVEL: 9,
   Z_DEFAULT_LEVEL: -1
-}
+})
