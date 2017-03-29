@@ -6,7 +6,15 @@ A smaller, faster, zlib stream built on
 **Current Status: Untested Beta**  It seems like this works, but I
 can't be sure until I have finished writing tests for it.
 
+This module was created to serve the needs of
+[node-tar](http://npm.im/tar) v2.  If your needs are different, then
+it may not be for you.
+
 ## How does this differ from the streams in `require('zlib')`?
+
+First of all, there are no convenience methods to compress or
+decompress a buffer.  If you want those, use the built-in `zlib` module.
+This is only streams.
 
 Node's built in zlib streams are built on top of `stream.Transform`.
 They do the maximally safe thing with respect to consistent
@@ -26,6 +34,3 @@ thread, rather than offloading to a worker thread asynchronously.
 
 The goal is to compress and decompress as fast as possible, even for
 files that are too large to do all in one pass.
-
-This module was created to serve the needs of
-[node-tar](http://npm.im/tar) v2.
