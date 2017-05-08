@@ -2,6 +2,11 @@
 // Test unzipping a gzip file that contains multiple concatenated "members"
 
 const t = require('tap')
+
+if (process.version.match(/^v4/)) {
+  return t.plan(0, 'concatenated zlib members not supported in node v4')
+}
+
 const zlib = require('../')
 const corez = require('zlib')
 const path = require('path')
