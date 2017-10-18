@@ -4,7 +4,7 @@
   "description": "A small fast zlib stream built on [minipass](http://npm.im/minipass) and Node.js's zlib binding.",
   "main": "index.js",
   "dependencies": {
-    "minipass": "^2.0.0"
+    "minipass": "^2.2.1"
   },
   "scripts": {
     "test": "tap test/*.js --100 -J",
