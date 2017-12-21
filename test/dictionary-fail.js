@@ -9,7 +9,7 @@ const input = Buffer.from([0x78, 0xBB, 0x04, 0x09, 0x01, 0xA5])
   const stream = new zlib.Inflate()
 
   stream.on('error', err =>
-    t.match(err, { message: /Missing dictionary/ }))
+    t.match(err, { name: 'ZlibError', message: /Missing dictionary/ }))
 
   stream.write(input)
 }
@@ -18,7 +18,7 @@ const input = Buffer.from([0x78, 0xBB, 0x04, 0x09, 0x01, 0xA5])
   const stream = new zlib.Inflate({ dictionary: Buffer.from('fail') })
 
   stream.on('error', err =>
-    t.match(err, { message: /Bad dictionary/ }))
+    t.match(err, { name: 'ZlibError', message: /Bad dictionary/ }))
 
   stream.write(input)
 }
