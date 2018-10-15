@@ -7,6 +7,8 @@ const realZlib = require('zlib')
 const constants = exports.constants = require('./constants.js')
 const MiniPass = require('minipass')
 
+const OriginalBufferConcat = Buffer.concat
+
 class ZlibError extends Error {
   constructor (msg, errno) {
     super('zlib: ' + msg)
@@ -232,12 +234,16 @@ class Zlib extends MiniPass {
     // intercept that by temporarily making it a no-op.
     const nativeHandle = this[_handle]._handle
     nativeHandle.close = () => {}
+    // It also calls `Buffer.concat()` at the end, which may be convenient
+    // for some, but which we are not interested in as it slows us down.
+    Buffer.concat = (args) => args
     let result
     try {
       result = this[_handle]._processChunk(chunk, this[_flushFlag])
     } catch (err) {
       this[_onError](err)
     } finally {
+      Buffer.concat = OriginalBufferConcat
       if (this[_handle]) {
         // Core zlib resets `_handle` to null after attempting to close the
         // native handle. Our no-op handler prevented actual closure, but we
@@ -250,8 +256,18 @@ class Zlib extends MiniPass {
     }
 
     let writeReturn
-    if (result)
-      writeReturn = super.write(Buffer.from(result))
+    if (result) {
+      if (Array.isArray(result)) {
+        // The first buffer is always `handle._outBuffer`, which would be
+        // re-used for later invocations; so, we always have to copy that one.
+        writeReturn = super.write(Buffer.from(result[0]))
+        for (let i = 1; i < result.length; i++) {
+          writeReturn = super.write(result[i])
+        }
+      } else {
+        writeReturn = super.write(Buffer.from(result))
+      }
+    }
 
     if (cb)
       cb()
