@@ -257,7 +257,7 @@ class Zlib extends MiniPass {
 
     let writeReturn
     if (result) {
-      if (Array.isArray(result)) {
+      if (Array.isArray(result) && result.length > 0) {
         // The first buffer is always `handle._outBuffer`, which would be
         // re-used for later invocations; so, we always have to copy that one.
         writeReturn = super.write(Buffer.from(result[0]))
