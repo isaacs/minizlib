@@ -233,7 +233,10 @@ class Zlib extends MiniPass {
     // _processChunk tries to .close() the native handle after it's done, so we
     // intercept that by temporarily making it a no-op.
     const nativeHandle = this[_handle]._handle
+    const originalNativeClose = nativeHandle.close
     nativeHandle.close = () => {}
+    const originalClose = this[_handle].close
+    this[_handle].close = () => {}
     // It also calls `Buffer.concat()` at the end, which may be convenient
     // for some, but which we are not interested in as it slows us down.
     Buffer.concat = (args) => args
@@ -249,6 +252,8 @@ class Zlib extends MiniPass {
         // native handle. Our no-op handler prevented actual closure, but we
         // need to restore the `._handle` property.
         this[_handle]._handle = nativeHandle
+        nativeHandle.close = originalNativeClose
+        this[_handle].close = originalClose
         // `_processChunk()` adds an 'error' listener. If we don't remove it
         // after each call, these handlers start piling up.
         this[_handle].removeAllListeners('error')
