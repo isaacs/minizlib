@@ -5,7 +5,7 @@ const Buffer = require('buffer').Buffer
 const realZlib = require('zlib')
 
 const constants = exports.constants = require('./constants.js')
-const MiniPass = require('minipass')
+const Minipass = require('minipass')
 
 const OriginalBufferConcat = Buffer.concat
 
@@ -65,58 +65,18 @@ const _level = Symbol('level')
 const _strategy = Symbol('strategy')
 const _ended = Symbol('ended')
 
-class Zlib extends MiniPass {
+class ZlibBase extends Minipass {
   constructor (opts, mode) {
+    /* istanbul ignore if: should be impossible */
+    if (!opts || typeof opts !== 'object')
+      throw new TypeError('no options passed to ZlibBase constructor')
+
     super(opts)
     this[_ended] = false
-    this[_opts] = opts = opts || {}
-    if (opts.flush && !validFlushFlags.has(opts.flush)) {
-      throw new TypeError('Invalid flush flag: ' + opts.flush)
-    }
-    if (opts.finishFlush && !validFlushFlags.has(opts.finishFlush)) {
-      throw new TypeError('Invalid flush flag: ' + opts.finishFlush)
-    }
+    this[_opts] = opts
 
-    this[_flushFlag] = opts.flush || constants.Z_NO_FLUSH
-    this[_finishFlush] = typeof opts.finishFlush !== 'undefined' ?
-      opts.finishFlush : constants.Z_FINISH
-
-    if (opts.chunkSize) {
-      if (opts.chunkSize < constants.Z_MIN_CHUNK) {
-        throw new RangeError('Invalid chunk size: ' + opts.chunkSize)
-      }
-    }
-
-    if (opts.windowBits) {
-      if (opts.windowBits < constants.Z_MIN_WINDOWBITS ||
-          opts.windowBits > constants.Z_MAX_WINDOWBITS) {
-        throw new RangeError('Invalid windowBits: ' + opts.windowBits)
-      }
-    }
-
-    if (opts.level) {
-      if (opts.level < constants.Z_MIN_LEVEL ||
-          opts.level > constants.Z_MAX_LEVEL) {
-        throw new RangeError('Invalid compression level: ' + opts.level)
-      }
-    }
-
-    if (opts.memLevel) {
-      if (opts.memLevel < constants.Z_MIN_MEMLEVEL ||
-          opts.memLevel > constants.Z_MAX_MEMLEVEL) {
-        throw new RangeError('Invalid memLevel: ' + opts.memLevel)
-      }
-    }
-
-    if (opts.strategy && !(strategies.has(opts.strategy)))
-      throw new TypeError('Invalid strategy: ' + opts.strategy)
-
-    if (opts.dictionary) {
-      if (!(opts.dictionary instanceof Buffer)) {
-        throw new TypeError('Invalid dictionary: it should be a Buffer instance')
-      }
-    }
-
+    this[_flushFlag] = opts.flush
+    this[_finishFlush] = opts.finishFlush
     this[_handle] = new realZlib[mode](opts)
 
     this[_onError] = (err) => {
@@ -130,17 +90,8 @@ class Zlib extends MiniPass {
     }
     this[_handle].on('error', this[_onError])
 
-    const level = typeof opts.level === 'number' ? opts.level
-                : constants.Z_DEFAULT_COMPRESSION
-
-    var strategy = typeof opts.strategy === 'number' ? opts.strategy
-                 : constants.Z_DEFAULT_STRATEGY
-
-    // API changed in node v9
-    /* istanbul ignore next */
-
-    this[_level] = level
-    this[_strategy] = strategy
+    this[_level] = opts.level
+    this[_strategy] = opts.strategy
 
     this.once('end', this.close)
   }
@@ -150,47 +101,6 @@ class Zlib extends MiniPass {
       this[_handle].close()
       this[_handle] = null
       this.emit('close')
-    }
-  }
-
-  params (level, strategy) {
-    if (this[_sawError])
-      return
-
-    if (!this[_handle])
-      throw new Error('cannot switch params when binding is closed')
-
-    // no way to test this without also not supporting params at all
-    /* istanbul ignore if */
-    if (!this[_handle].params)
-      throw new Error('not supported in this implementation')
-
-    if (level < constants.Z_MIN_LEVEL ||
-        level > constants.Z_MAX_LEVEL) {
-      throw new RangeError('Invalid compression level: ' + level)
-    }
-
-    if (!(strategies.has(strategy)))
-      throw new TypeError('Invalid strategy: ' + strategy)
-
-    if (this[_level] !== level || this[_strategy] !== strategy) {
-      this.flush(constants.Z_SYNC_FLUSH)
-      assert(this[_handle], 'zlib binding closed')
-      // .params() calls .flush(), but the latter is always async in the
-      // core zlib. We override .flush() temporarily to intercept that and
-      // flush synchronously.
-      const origFlush = this[_handle].flush
-      this[_handle].flush = (flushFlag, cb) => {
-        this[_handle].flush = origFlush
-        this.flush(flushFlag)
-        cb()
-      }
-      this[_handle].params(level, strategy)
-      /* istanbul ignore else */
-      if (this[_handle]) {
-        this[_level] = level
-        this[_strategy] = strategy
-      }
     }
   }
 
@@ -289,6 +199,107 @@ class Zlib extends MiniPass {
   }
 }
 
+class Zlib extends ZlibBase {
+  constructor (opts, mode) {
+    opts = opts || {}
+
+    if (opts.flush && !validFlushFlags.has(opts.flush))
+      throw new TypeError('Invalid flush flag: ' + opts.flush)
+
+    if (opts.finishFlush && !validFlushFlags.has(opts.finishFlush))
+      throw new TypeError('Invalid flush flag: ' + opts.finishFlush)
+
+    opts.flush = opts.flush || constants.Z_NO_FLUSH
+    opts.finishFlush = typeof opts.finishFlush !== 'undefined' ?
+      opts.finishFlush : constants.Z_FINISH
+
+    if (opts.chunkSize) {
+      if (opts.chunkSize < constants.Z_MIN_CHUNK)
+        throw new RangeError('Invalid chunk size: ' + opts.chunkSize)
+    }
+
+    if (opts.windowBits) {
+      if (opts.windowBits < constants.Z_MIN_WINDOWBITS ||
+          opts.windowBits > constants.Z_MAX_WINDOWBITS) {
+        throw new RangeError('Invalid windowBits: ' + opts.windowBits)
+      }
+    }
+
+    if (opts.level) {
+      if (opts.level < constants.Z_MIN_LEVEL ||
+          opts.level > constants.Z_MAX_LEVEL) {
+        throw new RangeError('Invalid compression level: ' + opts.level)
+      }
+    }
+
+    if (opts.memLevel) {
+      if (opts.memLevel < constants.Z_MIN_MEMLEVEL ||
+          opts.memLevel > constants.Z_MAX_MEMLEVEL) {
+        throw new RangeError('Invalid memLevel: ' + opts.memLevel)
+      }
+    }
+
+    if (opts.strategy && !(strategies.has(opts.strategy)))
+      throw new TypeError('Invalid strategy: ' + opts.strategy)
+
+    opts.level = typeof opts.level === 'number' ? opts.level
+                : constants.Z_DEFAULT_COMPRESSION
+
+    opts.strategy = typeof opts.strategy === 'number' ? opts.strategy
+                 : constants.Z_DEFAULT_STRATEGY
+
+    if (opts.dictionary) {
+      // TODO: support ArrayBuffers and TypedArrays here, just buffer-ize.
+      if (!(opts.dictionary instanceof Buffer)) {
+        throw new TypeError('Invalid dictionary: it should be a Buffer instance')
+      }
+    }
+
+    super(opts, mode)
+  }
+
+  params (level, strategy) {
+    if (this[_sawError])
+      return
+
+    if (!this[_handle])
+      throw new Error('cannot switch params when binding is closed')
+
+    // no way to test this without also not supporting params at all
+    /* istanbul ignore if */
+    if (!this[_handle].params)
+      throw new Error('not supported in this implementation')
+
+    if (level < constants.Z_MIN_LEVEL ||
+        level > constants.Z_MAX_LEVEL) {
+      throw new RangeError('Invalid compression level: ' + level)
+    }
+
+    if (!(strategies.has(strategy)))
+      throw new TypeError('Invalid strategy: ' + strategy)
+
+    if (this[_level] !== level || this[_strategy] !== strategy) {
+      this.flush(constants.Z_SYNC_FLUSH)
+      assert(this[_handle], 'zlib binding closed')
+      // .params() calls .flush(), but the latter is always async in the
+      // core zlib. We override .flush() temporarily to intercept that and
+      // flush synchronously.
+      const origFlush = this[_handle].flush
+      this[_handle].flush = (flushFlag, cb) => {
+        this[_handle].flush = origFlush
+        this.flush(flushFlag)
+        cb()
+      }
+      this[_handle].params(level, strategy)
+      /* istanbul ignore else */
+      if (this[_handle]) {
+        this[_level] = level
+        this[_strategy] = strategy
+      }
+    }
+  }
+}
+
 // minimal 2-byte header
 class Deflate extends Zlib {
   constructor (opts) {
@@ -335,6 +346,61 @@ class Unzip extends Zlib {
   }
 }
 
+const brotliInitParamsArray = new Uint32Array(constants.MAX_VALID_BROTLI_PARAM)
+class Brotli extends ZlibBase {
+  constructor (opts, mode) {
+    opts = opts || {}
+
+    if (opts.params) {
+      brotliInitParamsArray.fill(-1)
+      for (const k of Object.keys(opts.params)) {
+        const key = +k
+        if (isNaN(key) || key < 0 || key > constants.MAX_VALID_BROTLI_PARAM ||
+            (brotliInitParamsArray[key] | 0) !== -1) {
+          throw Object.assign(
+            new RangeError(k + ' is not a valid Brotli parameter'),
+            { code: 'ERR_BROTLI_INVALID_PARAM' },
+          )
+        }
+      }
+      const value = opts.params[origKey]
+      if (typeof value !== 'number' && typeof value !== 'boolean') {
+        throw new TypeError(
+          'options.params[key] must be number or boolean. ' +
+          `Received ${typeof value}`
+        )
+      }
+      brotliInitParamsArray[key] = value;
+    }
+
+    super(opts, mode)
+  }
+}
+
+// XXX create a new Brotli class with a common ancestor to Zlib class
+// it has different options checking than gzip/deflate, 
+class BrotliCompress extends Zlib {
+  constructor (opts) {
+    super({
+      flush: constants.BROTLI_OPERATION_PROCESS,
+      finishFlush: constants.BROTLI_OPERATION_FINISH,
+      fullFlush: constants.BROTLI_OPERATION_FLUSH,
+      ...opts,
+    }, 'BrotliCompress')
+  }
+}
+
+class BrotliDecompress extends Zlib {
+  constructor (opts) {
+    super({
+      flush: constants.BROTLI_OPERATION_PROCESS,
+      finishFlush: constants.BROTLI_OPERATION_FINISH,
+      fullFlush: constants.BROTLI_OPERATION_FLUSH,
+      ...opts,
+    }, 'BrotliDecompress')
+  }
+}
+
 exports.Deflate = Deflate
 exports.Inflate = Inflate
 exports.Gzip = Gzip
@@ -342,3 +408,14 @@ exports.Gunzip = Gunzip
 exports.DeflateRaw = DeflateRaw
 exports.InflateRaw = InflateRaw
 exports.Unzip = Unzip
+/* istanbul ignore else */
+if (typeof realZlib.BrotliCompress === 'function') {
+  exports.BrotliCompress = BrotliCompress
+  exports.BrotliDecompress = BrotliDecompress
+} else {
+  exports.BrotliCompress = exports.BrotliDecompress = class {
+    constructor () {
+      throw new Error('Brotli is not supported in this version of Node.js')
+    }
+  }
+}
