@@ -1,6 +1,10 @@
-// pull the version number that node is using
-const { ZLIB_VERNUM } = require('zlib').constants ||
+// Update with any zlib constants that are added or changed in the future.
+// Node v6 didn't export this, so we just hard code the version and rely
+// on all the other hard-coded values from zlib v4736.  When node v6
+// support drops, we can just export the realZlibConstants object.
+const realZlibConstants = require('zlib').constants ||
   /* istanbul ignore next */ { ZLIB_VERNUM: 4736 }
+
 module.exports = Object.freeze(Object.assign(Object.create(null), {
   Z_NO_FLUSH: 0,
   Z_PARTIAL_FLUSH: 1,
@@ -26,7 +30,6 @@ module.exports = Object.freeze(Object.assign(Object.create(null), {
   Z_RLE: 3,
   Z_FIXED: 4,
   Z_DEFAULT_STRATEGY: 0,
-  ZLIB_VERNUM,
   DEFLATE: 1,
   INFLATE: 2,
   GZIP: 3,
@@ -74,7 +77,6 @@ module.exports = Object.freeze(Object.assign(Object.create(null), {
   BROTLI_PARAM_LARGE_WINDOW: 6,
   BROTLI_PARAM_NPOSTFIX: 7,
   BROTLI_PARAM_NDIRECT: 8,
-  MAX_VALID_BROTLI_PARAM: 8,
   BROTLI_DECODER_RESULT_ERROR: 0,
   BROTLI_DECODER_RESULT_SUCCESS: 1,
   BROTLI_DECODER_RESULT_NEEDS_MORE_INPUT: 2,
@@ -110,4 +112,4 @@ module.exports = Object.freeze(Object.assign(Object.create(null), {
   BROTLI_DECODER_ERROR_ALLOC_RING_BUFFER_2: -27,
   BROTLI_DECODER_ERROR_ALLOC_BLOCK_TYPE_TREES: -30,
   BROTLI_DECODER_ERROR_UNREACHABLE: -31,
-}))
+}, realZlibConstants))
