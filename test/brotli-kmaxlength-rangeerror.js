@@ -19,10 +19,14 @@ const encoded = Buffer.from('G38A+CXCIrFAIAM=', 'base64');
 t.test('async', t => {
   const dec = new zlib.BrotliDecompress()
   setTimeout(() => dec.end(encoded))
-  return t.rejects(dec.concat(), RangeError)
+  return t.rejects(dec.concat(), {
+    code: 'ERR_BUFFER_TOO_LARGE',
+  })
 })
 
 t.test('sync', t => {
-  t.throws(() => new zlib.BrotliDecompress().end(encoded), RangeError)
+  t.throws(() => new zlib.BrotliDecompress().end(encoded), {
+    code: 'ERR_BUFFER_TOO_LARGE',
+  })
   t.end()
 })

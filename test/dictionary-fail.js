@@ -10,7 +10,7 @@ const input = Buffer.from([0x78, 0xBB, 0x04, 0x09, 0x01, 0xA5])
 
   stream.on('error', err =>
     t.match(err, {
-      message: 'Missing dictionary',
+      message: 'zlib: Missing dictionary',
       errno: 2,
       code: 'Z_NEED_DICT',
     }))
@@ -23,7 +23,7 @@ const input = Buffer.from([0x78, 0xBB, 0x04, 0x09, 0x01, 0xA5])
 
   stream.on('error', err =>
     t.match(err, {
-      message: 'Bad dictionary',
+      message: 'zlib: Bad dictionary',
       errno: 2,
       code: 'Z_NEED_DICT',
     }))
@@ -38,7 +38,7 @@ const input = Buffer.from([0x78, 0xBB, 0x04, 0x09, 0x01, 0xA5])
   // using the raw format
   stream.on('error', err =>
     t.match(err, {
-      message: 'invalid stored block lengths',
+      message: 'zlib: invalid stored block lengths',
       errno: -3,
       code: 'Z_DATA_ERROR',
     }))

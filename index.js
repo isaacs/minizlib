@@ -9,6 +9,24 @@ const Minipass = require('minipass')
 
 const OriginalBufferConcat = Buffer.concat
 
+class ZlibError extends Error {
+  constructor (err) {
+    super('zlib: ' + err.message)
+    this.code = err.code
+    this.errno = err.errno
+    /* istanbul ignore if */
+    if (!this.code)
+      this.code = 'ZLIB_ERROR'
+
+    this.message = 'zlib: ' + err.message
+    Error.captureStackTrace(this, this.constructor)
+  }
+
+  get name () {
+    return 'ZlibError'
+  }
+}
+
 // the Zlib class they all inherit from
 // This thing manages the queue of requests, and returns
 // true or false if there is anything in the queue when
@@ -37,7 +55,12 @@ class ZlibBase extends Minipass {
     this[_flushFlag] = opts.flush
     this[_finishFlushFlag] = opts.finishFlush
     // this will throw if any options are invalid for the class selected
-    this[_handle] = new realZlib[mode](opts)
+    try {
+      this[_handle] = new realZlib[mode](opts)
+    } catch (er) {
+      // make sure that all errors get decorated properly
+      throw new ZlibError(er)
+    }
 
     this[_onError] = (err) => {
       this[_sawError] = true
@@ -47,7 +70,7 @@ class ZlibBase extends Minipass {
       this.emit('error', err)
     }
 
-    this[_handle].on('error', er => this[_onError](er))
+    this[_handle].on('error', er => this[_onError](new ZlibError(er)))
     this.once('end', () => this.close)
   }
 
@@ -121,7 +144,7 @@ class ZlibBase extends Minipass {
       // or if we do, put Buffer.concat() back before we emit error
       // Error events call into user code, which may call Buffer.concat()
       Buffer.concat = OriginalBufferConcat
-      this[_onError](err)
+      this[_onError](new ZlibError(err))
     } finally {
       if (this[_handle]) {
         // Core zlib resets `_handle` to null after attempting to close the
