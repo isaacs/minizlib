@@ -9,7 +9,11 @@ const input = Buffer.from([0x78, 0xBB, 0x04, 0x09, 0x01, 0xA5])
   const stream = new zlib.Inflate()
 
   stream.on('error', err =>
-    t.match(err, { name: 'ZlibError', message: /Missing dictionary/ }))
+    t.match(err, {
+      message: 'Missing dictionary',
+      errno: 2,
+      code: 'Z_NEED_DICT',
+    }))
 
   stream.write(input)
 }
@@ -18,7 +22,11 @@ const input = Buffer.from([0x78, 0xBB, 0x04, 0x09, 0x01, 0xA5])
   const stream = new zlib.Inflate({ dictionary: Buffer.from('fail') })
 
   stream.on('error', err =>
-    t.match(err, { name: 'ZlibError', message: /Bad dictionary/ }))
+    t.match(err, {
+      message: 'Bad dictionary',
+      errno: 2,
+      code: 'Z_NEED_DICT',
+    }))
 
   stream.write(input)
 }
@@ -29,7 +37,11 @@ const input = Buffer.from([0x78, 0xBB, 0x04, 0x09, 0x01, 0xA5])
   // It's not possible to separate invalid dict and invalid data when
   // using the raw format
   stream.on('error', err =>
-    t.match(err, { message: /invalid/ }))
+    t.match(err, {
+      message: 'invalid stored block lengths',
+      errno: -3,
+      code: 'Z_DATA_ERROR',
+    }))
 
   stream.write(input)
 }

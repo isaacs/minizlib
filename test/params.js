@@ -32,16 +32,13 @@ actual = Buffer.concat(bufs);
 
 t.same(actual, expected)
 
-t.throws('invalid level', _ => deflater.params(Infinity),
-         new Error('Invalid compression level: Infinity'))
-t.throws('invalid strategy', _ => deflater.params(0, 'nope'),
-         new Error('Invalid strategy: nope'))
-
+t.throws('invalid level', _ => deflater.params(Infinity))
+t.throws('invalid strategy', _ => deflater.params(0, 'nope'))
 deflater.end()
 deflater.read()
 deflater.close()
 deflater.close()
 deflater.close()
 
-t.throws('params after end;', _ => deflater.params(0, 0),
+t.throws('params after end', _ => deflater.params(0, 0),
          new Error('cannot switch params when binding is closed'))

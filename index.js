@@ -9,74 +9,34 @@ const Minipass = require('minipass')
 
 const OriginalBufferConcat = Buffer.concat
 
-class ZlibError extends Error {
-  constructor (msg, errno) {
-    super('zlib: ' + msg)
-    this.errno = errno
-    this.code = codes.get(errno)
-  }
-
-  get name () {
-    return 'ZlibError'
-  }
-}
-
-// translation table for return codes.
-const codes = new Map([
-  [constants.Z_OK, 'Z_OK'],
-  [constants.Z_STREAM_END, 'Z_STREAM_END'],
-  [constants.Z_NEED_DICT, 'Z_NEED_DICT'],
-  [constants.Z_ERRNO, 'Z_ERRNO'],
-  [constants.Z_STREAM_ERROR, 'Z_STREAM_ERROR'],
-  [constants.Z_DATA_ERROR, 'Z_DATA_ERROR'],
-  [constants.Z_MEM_ERROR, 'Z_MEM_ERROR'],
-  [constants.Z_BUF_ERROR, 'Z_BUF_ERROR'],
-  [constants.Z_VERSION_ERROR, 'Z_VERSION_ERROR']
-])
-
-const validFlushFlags = new Set([
-  constants.Z_NO_FLUSH,
-  constants.Z_PARTIAL_FLUSH,
-  constants.Z_SYNC_FLUSH,
-  constants.Z_FULL_FLUSH,
-  constants.Z_FINISH,
-  constants.Z_BLOCK
-])
-
-const strategies = new Set([
-  constants.Z_FILTERED,
-  constants.Z_HUFFMAN_ONLY,
-  constants.Z_RLE,
-  constants.Z_FIXED,
-  constants.Z_DEFAULT_STRATEGY
-])
-
 // the Zlib class they all inherit from
 // This thing manages the queue of requests, and returns
 // true or false if there is anything in the queue when
 // you call the .write() method.
 const _opts = Symbol('opts')
 const _flushFlag = Symbol('flushFlag')
-const _finishFlush = Symbol('finishFlush')
+const _finishFlushFlag = Symbol('finishFlushFlag')
+const _fullFlushFlag = Symbol('fullFlushFlag')
 const _handle = Symbol('handle')
 const _onError = Symbol('onError')
 const _sawError = Symbol('sawError')
 const _level = Symbol('level')
 const _strategy = Symbol('strategy')
 const _ended = Symbol('ended')
+const _defaultFullFlush = Symbol('_defaultFullFlush')
 
 class ZlibBase extends Minipass {
   constructor (opts, mode) {
-    /* istanbul ignore if: should be impossible */
     if (!opts || typeof opts !== 'object')
-      throw new TypeError('no options passed to ZlibBase constructor')
+      throw new TypeError('invalid options for ZlibBase constructor')
 
     super(opts)
     this[_ended] = false
     this[_opts] = opts
 
     this[_flushFlag] = opts.flush
-    this[_finishFlush] = opts.finishFlush
+    this[_finishFlushFlag] = opts.finishFlush
+    // this will throw if any options are invalid for the class selected
     this[_handle] = new realZlib[mode](opts)
 
     this[_onError] = (err) => {
@@ -84,16 +44,11 @@ class ZlibBase extends Minipass {
       // there is no way to cleanly recover.
       // continuing only obscures problems.
       this.close()
-
-      const error = new ZlibError(err.message, err.errno)
-      this.emit('error', error)
+      this.emit('error', err)
     }
-    this[_handle].on('error', this[_onError])
 
-    this[_level] = opts.level
-    this[_strategy] = opts.strategy
-
-    this.once('end', this.close)
+    this[_handle].on('error', er => this[_onError](er))
+    this.once('end', () => this.close)
   }
 
   close () {
@@ -111,23 +66,19 @@ class ZlibBase extends Minipass {
     }
   }
 
-  flush (kind) {
-    if (kind === undefined)
-      kind = constants.Z_FULL_FLUSH
-
+  flush (flushFlag) {
     if (this.ended)
       return
 
-    const flushFlag = this[_flushFlag]
-    this[_flushFlag] = kind
-    this.write(Buffer.alloc(0))
-    this[_flushFlag] = flushFlag
+    if (typeof flushFlag !== 'number')
+      flushFlag = this[_fullFlushFlag]
+    this.write(Object.assign(Buffer.alloc(0), { [_flushFlag]: flushFlag }))
   }
 
   end (chunk, encoding, cb) {
     if (chunk)
       this.write(chunk, encoding)
-    this.flush(this[_finishFlush])
+    this.flush(this[_finishFlushFlag])
     this[_ended] = true
     return super.end(null, null, cb)
   }
@@ -161,11 +112,17 @@ class ZlibBase extends Minipass {
     Buffer.concat = (args) => args
     let result
     try {
-      result = this[_handle]._processChunk(chunk, this[_flushFlag])
+      const flushFlag = typeof chunk[_flushFlag] === 'number'
+        ? chunk[_flushFlag] : this[_flushFlag]
+      result = this[_handle]._processChunk(chunk, flushFlag)
+      // if we don't throw, reset it back how it was
+      Buffer.concat = OriginalBufferConcat
     } catch (err) {
+      // or if we do, put Buffer.concat() back before we emit error
+      // Error events call into user code, which may call Buffer.concat()
+      Buffer.concat = OriginalBufferConcat
       this[_onError](err)
     } finally {
-      Buffer.concat = OriginalBufferConcat
       if (this[_handle]) {
         // Core zlib resets `_handle` to null after attempting to close the
         // native handle. Our no-op handler prevented actual closure, but we
@@ -203,59 +160,13 @@ class Zlib extends ZlibBase {
   constructor (opts, mode) {
     opts = opts || {}
 
-    if (opts.flush && !validFlushFlags.has(opts.flush))
-      throw new TypeError('Invalid flush flag: ' + opts.flush)
-
-    if (opts.finishFlush && !validFlushFlags.has(opts.finishFlush))
-      throw new TypeError('Invalid flush flag: ' + opts.finishFlush)
-
     opts.flush = opts.flush || constants.Z_NO_FLUSH
-    opts.finishFlush = typeof opts.finishFlush !== 'undefined' ?
-      opts.finishFlush : constants.Z_FINISH
-
-    if (opts.chunkSize) {
-      if (opts.chunkSize < constants.Z_MIN_CHUNK)
-        throw new RangeError('Invalid chunk size: ' + opts.chunkSize)
-    }
-
-    if (opts.windowBits) {
-      if (opts.windowBits < constants.Z_MIN_WINDOWBITS ||
-          opts.windowBits > constants.Z_MAX_WINDOWBITS) {
-        throw new RangeError('Invalid windowBits: ' + opts.windowBits)
-      }
-    }
-
-    if (opts.level) {
-      if (opts.level < constants.Z_MIN_LEVEL ||
-          opts.level > constants.Z_MAX_LEVEL) {
-        throw new RangeError('Invalid compression level: ' + opts.level)
-      }
-    }
-
-    if (opts.memLevel) {
-      if (opts.memLevel < constants.Z_MIN_MEMLEVEL ||
-          opts.memLevel > constants.Z_MAX_MEMLEVEL) {
-        throw new RangeError('Invalid memLevel: ' + opts.memLevel)
-      }
-    }
-
-    if (opts.strategy && !(strategies.has(opts.strategy)))
-      throw new TypeError('Invalid strategy: ' + opts.strategy)
-
-    opts.level = typeof opts.level === 'number' ? opts.level
-                : constants.Z_DEFAULT_COMPRESSION
-
-    opts.strategy = typeof opts.strategy === 'number' ? opts.strategy
-                 : constants.Z_DEFAULT_STRATEGY
-
-    if (opts.dictionary) {
-      // TODO: support ArrayBuffers and TypedArrays here, just buffer-ize.
-      if (!(opts.dictionary instanceof Buffer)) {
-        throw new TypeError('Invalid dictionary: it should be a Buffer instance')
-      }
-    }
-
+    opts.finishFlush = opts.finishFlush || constants.Z_FINISH
     super(opts, mode)
+
+    this[_fullFlushFlag] = constants.Z_FULL_FLUSH
+    this[_level] = opts.level
+    this[_strategy] = opts.strategy
   }
 
   params (level, strategy) {
@@ -270,14 +181,6 @@ class Zlib extends ZlibBase {
     if (!this[_handle].params)
       throw new Error('not supported in this implementation')
 
-    if (level < constants.Z_MIN_LEVEL ||
-        level > constants.Z_MAX_LEVEL) {
-      throw new RangeError('Invalid compression level: ' + level)
-    }
-
-    if (!(strategies.has(strategy)))
-      throw new TypeError('Invalid strategy: ' + strategy)
-
     if (this[_level] !== level || this[_strategy] !== strategy) {
       this.flush(constants.Z_SYNC_FLUSH)
       assert(this[_handle], 'zlib binding closed')
@@ -286,11 +189,14 @@ class Zlib extends ZlibBase {
       // flush synchronously.
       const origFlush = this[_handle].flush
       this[_handle].flush = (flushFlag, cb) => {
-        this[_handle].flush = origFlush
         this.flush(flushFlag)
         cb()
       }
-      this[_handle].params(level, strategy)
+      try {
+        this[_handle].params(level, strategy)
+      } finally {
+        this[_handle].flush = origFlush
+      }
       /* istanbul ignore else */
       if (this[_handle]) {
         this[_level] = level
@@ -346,58 +252,28 @@ class Unzip extends Zlib {
   }
 }
 
-const brotliInitParamsArray = new Uint32Array(constants.MAX_VALID_BROTLI_PARAM)
 class Brotli extends ZlibBase {
   constructor (opts, mode) {
     opts = opts || {}
 
-    if (opts.params) {
-      brotliInitParamsArray.fill(-1)
-      for (const k of Object.keys(opts.params)) {
-        const key = +k
-        if (isNaN(key) || key < 0 || key > constants.MAX_VALID_BROTLI_PARAM ||
-            (brotliInitParamsArray[key] | 0) !== -1) {
-          throw Object.assign(
-            new RangeError(k + ' is not a valid Brotli parameter'),
-            { code: 'ERR_BROTLI_INVALID_PARAM' },
-          )
-        }
-      }
-      const value = opts.params[origKey]
-      if (typeof value !== 'number' && typeof value !== 'boolean') {
-        throw new TypeError(
-          'options.params[key] must be number or boolean. ' +
-          `Received ${typeof value}`
-        )
-      }
-      brotliInitParamsArray[key] = value;
-    }
+    opts.flush = opts.flush || constants.BROTLI_OPERATION_PROCESS
+    opts.finishFlush = opts.finishFlush || constants.BROTLI_OPERATION_FINISH
 
     super(opts, mode)
+
+    this[_fullFlushFlag] = constants.BROTLI_OPERATION_FLUSH
   }
 }
 
-// XXX create a new Brotli class with a common ancestor to Zlib class
-// it has different options checking than gzip/deflate, 
-class BrotliCompress extends Zlib {
+class BrotliCompress extends Brotli {
   constructor (opts) {
-    super({
-      flush: constants.BROTLI_OPERATION_PROCESS,
-      finishFlush: constants.BROTLI_OPERATION_FINISH,
-      fullFlush: constants.BROTLI_OPERATION_FLUSH,
-      ...opts,
-    }, 'BrotliCompress')
+    super(opts, 'BrotliCompress')
   }
 }
 
-class BrotliDecompress extends Zlib {
+class BrotliDecompress extends Brotli {
   constructor (opts) {
-    super({
-      flush: constants.BROTLI_OPERATION_PROCESS,
-      finishFlush: constants.BROTLI_OPERATION_FINISH,
-      fullFlush: constants.BROTLI_OPERATION_FLUSH,
-      ...opts,
-    }, 'BrotliDecompress')
+    super(opts, 'BrotliDecompress')
   }
 }
 
