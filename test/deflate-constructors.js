@@ -33,7 +33,9 @@ t.doesNotThrow(_ => new zlib.Deflate({strategy: zlib.constants.Z_FIXED}))
 t.doesNotThrow(_ => new zlib.Deflate({ strategy: zlib.constants.Z_DEFAULT_STRATEGY}))
 
 // Throws if opt.strategy is the wrong type.
-t.throws(_ => new zlib.Deflate({strategy: '' + zlib.constants.Z_RLE }))
+t.throws(_ => new zlib.Deflate({strategy: '' + zlib.constants.Z_RLE }), {}, {
+  skip: process.version.match(/^v6\./) ? 'skip on node 6' : false
+})
 
 // Throws if opts.strategy is invalid
 t.throws(_ => new zlib.Deflate({strategy: 'this is a bogus strategy'}))

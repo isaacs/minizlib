@@ -2,6 +2,10 @@
 // Test compressing and uncompressing a string with brotli
 
 const t = require('tap')
+if (!require('zlib').BrotliDecompress) {
+  t.plan(0, 'brotli not supported')
+  process.exit(0)
+}
 const zlib = require('../');
 
 const inputString = 'ΩΩLorem ipsum dolor sit amet, consectetur adipiscing eli' +

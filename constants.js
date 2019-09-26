@@ -1,5 +1,6 @@
 // pull the version number that node is using
-const { ZLIB_VERNUM } = require('zlib').constants
+const { ZLIB_VERNUM } = require('zlib').constants ||
+  /* istanbul ignore next */ { ZLIB_VERNUM: 4736 }
 module.exports = Object.freeze(Object.assign(Object.create(null), {
   Z_NO_FLUSH: 0,
   Z_PARTIAL_FLUSH: 1,
