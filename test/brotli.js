@@ -1,8 +1,4 @@
 const t = require('tap')
-if (!require('zlib').BrotliDecompress) {
-  t.plan(0, 'brotli not supported')
-  process.exit(0)
-}
 const zlib = require('../')
 const fs = require('fs')
 const {resolve} = require('path')

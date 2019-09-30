@@ -5,16 +5,12 @@
 // https://github.com/nodejs/node/pull/1811
 
 const t = require('tap')
+
 // Change kMaxLength for zlib to trigger the error without having to allocate
 // large Buffers.
 const buffer = require('buffer');
 const oldkMaxLength = buffer.kMaxLength;
 buffer.kMaxLength = 128;
-if (!require('zlib').BrotliDecompress) {
-  t.plan(0, 'brotli not supported')
-  process.exit(0)
-}
-
 const zlib = require('../');
 buffer.kMaxLength = oldkMaxLength;
 

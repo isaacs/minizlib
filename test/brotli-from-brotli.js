@@ -3,10 +3,6 @@
 // piped in as fast as possible.
 
 const t = require('tap')
-if (!require('zlib').BrotliDecompress) {
-  t.plan(0, 'brotli not supported')
-  process.exit(0)
-}
 const zlib = require('../')
 const {resolve, basename} = require('path')
 const {sync: mkdirp} = require('mkdirp')
