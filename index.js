@@ -164,9 +164,11 @@ class ZlibBase extends Minipass {
         // after each call, these handlers start piling up.
         this[_handle].removeAllListeners('error')
         // make sure OUR error listener is still attached tho
-        this[_handle].on('error', er => this[_onError](new ZlibError(er)))
       }
     }
+
+    if (this[_handle])
+      this[_handle].on('error', er => this[_onError](new ZlibError(er)))
 
     let writeReturn
     if (result) {
