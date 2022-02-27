@@ -29,7 +29,7 @@ const out = fs.createWriteStream(outputFile)
 t.test('decompress and test output', t => {
   inp.pipe(decompress).pipe(out).on('close', () => {
     const actual = fs.readFileSync(outputFile)
-    t.deepEqual(actual, expect)
+    t.same(actual, expect)
     t.end()
   })
 })

@@ -34,7 +34,7 @@ t.same(actualFull, expectedFull)
 
 deflater.end()
 deflater.flush()
-t.notEqual(deflater.read(), null)
+t.not(deflater.read(), null)
 t.ok(deflater.ended)
 deflater.flush()
 t.equal(deflater.read(), null)

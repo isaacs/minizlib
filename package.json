@@ -30,7 +30,8 @@
   "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
   "license": "MIT",
   "devDependencies": {
-    "tap": "^14.6.9"
+    "mkdirp": "^1.0.4",
+    "tap": "^15.1.6"
   },
   "files": [
     "index.js",

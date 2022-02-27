@@ -20,4 +20,4 @@ deflater.flush()
 const bufs = []
 deflater.on('data', b => bufs.push(b))
 const actualFull = Buffer.concat(bufs)
-t.deepEqual(actualFull, expectedFull)
+t.same(actualFull, expectedFull)
