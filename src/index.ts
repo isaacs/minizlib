@@ -6,6 +6,15 @@ import { constants } from './constants.js'
 export { constants } from './constants.js'
 
 const OriginalBufferConcat = Buffer.concat
+const desc = Object.getOwnPropertyDescriptor(Buffer, 'concat')
+const noop = (args: Buffer[]) => args as unknown as Buffer
+const passthroughBufferConcat =
+  desc?.writable === true || desc?.set !== undefined
+    ? (makeNoOp: boolean) => {
+        Buffer.concat = makeNoOp ? noop : OriginalBufferConcat
+      }
+    : (_: boolean) => {}
+
 const _superWrite = Symbol('_superWrite')
 
 export class ZlibError extends Error {
@@ -217,7 +226,7 @@ abstract class ZlibBase extends Minipass<Buffer, ChunkWithFlushFlag> {
     this.#handle.close = () => {}
     // It also calls `Buffer.concat()` at the end, which may be convenient
     // for some, but which we are not interested in as it slows us down.
-    Buffer.concat = args => args as unknown as Buffer
+    passthroughBufferConcat(true)
     let result: undefined | Buffer | Buffer[] = undefined
     try {
       const flushFlag =
@@ -230,11 +239,11 @@ abstract class ZlibBase extends Minipass<Buffer, ChunkWithFlushFlag> {
         }
       )._processChunk(chunk as Buffer, flushFlag)
       // if we don't throw, reset it back how it was
-      Buffer.concat = OriginalBufferConcat
+      passthroughBufferConcat(false)
     } catch (err) {
       // or if we do, put Buffer.concat() back before we emit error
       // Error events call into user code, which may call Buffer.concat()
-      Buffer.concat = OriginalBufferConcat
+      passthroughBufferConcat(false)
       this.#onError(new ZlibError(err as NodeJS.ErrnoException))
     } finally {
       if (this.#handle) {
