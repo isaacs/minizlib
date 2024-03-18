@@ -1,19 +1,14 @@
-const t = require('tap')
-const { Gzip } = require('../')
+import t from 'tap'
+import { Gzip } from '../dist/esm/index.js'
 
 t.test('only raise once if emitted before writing', t => {
   t.plan(1)
 
   const gz = new Gzip()
 
-  // dirty hack to get at the internal handle
-  const kHandle = Object.getOwnPropertySymbols(gz)
-    .filter(sym => sym.toString() === 'Symbol(handle)')[0]
-
   gz.once('error', er => t.match(er, { message: 'zlib: fart' }))
-  const handle = gz[kHandle]
-  handle.emit('error', new Error('fart'))
-  handle.emit('error', new Error('poop'))
+  gz.handle.emit('error', new Error('fart'))
+  gz.handle?.emit('error', new Error('poop'))
 })
 
 t.test('only raise once if emitted after writing', t => {
@@ -21,17 +16,12 @@ t.test('only raise once if emitted after writing', t => {
 
   const gz = new Gzip()
 
-  // dirty hack to get at the internal handle
-  const kHandle = Object.getOwnPropertySymbols(gz)
-    .filter(sym => sym.toString() === 'Symbol(handle)')[0]
-
   gz.once('error', er => t.match(er, { message: 'zlib: fart' }))
 
   gz.write('hello, ')
 
-  const handle = gz[kHandle]
-  handle.emit('error', new Error('fart'))
-  handle.emit('error', new Error('poop'))
+  gz.handle.emit('error', new Error('fart'))
+  gz.handle?.emit('error', new Error('poop'))
 })
 
 t.test('only raise once if emitted after writing after emitting', t => {
@@ -39,16 +29,11 @@ t.test('only raise once if emitted after writing after emitting', t => {
 
   const gz = new Gzip()
 
-  // dirty hack to get at the internal handle
-  const kHandle = Object.getOwnPropertySymbols(gz)
-    .filter(sym => sym.toString() === 'Symbol(handle)')[0]
-
   gz.once('error', er => t.match(er, { message: 'zlib: fart' }))
 
   gz.write('hello, ')
 
-  const handle = gz[kHandle]
-  handle.emit('error', new Error('fart'))
+  gz.handle.emit('error', new Error('fart'))
   gz.write(' world')
-  handle.emit('error', new Error('poop'))
+  gz.handle?.emit('error', new Error('poop'))
 })

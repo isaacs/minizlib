@@ -1,19 +1,27 @@
-'use strict'
-const t = require('tap')
-const zlib = require('../')
-const path = require('path')
-const fs = require('fs')
-const util = require('util')
-const stream = require('stream')
-const EE = require('events').EventEmitter
-const fixtures = path.resolve(__dirname, 'fixtures')
+import t from 'tap'
+import {
+  Deflate,
+  Inflate,
+  Gzip,
+  Gunzip,
+  DeflateRaw,
+  InflateRaw,
+  Unzip,
+} from '../dist/esm/index.js'
+import fs from 'fs'
+import path from 'path'
+import stream from 'stream'
+import EE from 'events'
+import {fileURLToPath} from 'url'
+
+const fixtures = fileURLToPath(new URL('fixtures', import.meta.url))
 
 let zlibPairs = [
-  [zlib.Deflate, zlib.Inflate],
-  [zlib.Gzip, zlib.Gunzip],
-  [zlib.Deflate, zlib.Unzip],
-  [zlib.Gzip, zlib.Unzip],
-  [zlib.DeflateRaw, zlib.InflateRaw]
+  [Deflate, Inflate],
+  [Gzip, Gunzip],
+  [Deflate, Unzip],
+  [Gzip, Unzip],
+  [DeflateRaw, InflateRaw],
 ]
 
 // how fast to trickle through the slowstream
@@ -44,19 +52,18 @@ if (!process.env.PUMMEL) {
 let testFiles = ['person.jpg', 'elipses.txt', 'empty.txt']
 
 if (process.env.FAST) {
-  zlibPairs = [[zlib.Gzip, zlib.Unzip]]
+  zlibPairs = [[Gzip, Unzip]]
   testFiles = ['person.jpg']
 }
 
 const tests = {}
-testFiles.forEach(function(file) {
+testFiles.forEach(function (file) {
   tests[file] = fs.readFileSync(path.resolve(fixtures, file))
 })
 
-
 // stream that saves everything
 class BufferStream extends EE {
-  constructor () {
+  constructor() {
     super()
     this.chunks = []
     this.length = 0
@@ -64,15 +71,14 @@ class BufferStream extends EE {
     this.readable = true
   }
 
-  write (c) {
+  write(c) {
     this.chunks.push(c)
     this.length += c.length
     return true
   }
 
-  end (c) {
-    if (c)
-      this.write(c)
+  end(c) {
+    if (c) this.write(c)
 
     // flatten
     const buf = Buffer.allocUnsafe(this.length)
@@ -88,7 +94,7 @@ class BufferStream extends EE {
 }
 
 class SlowStream extends stream.Stream {
-  constructor (trickle) {
+  constructor(trickle) {
     super()
     this.trickle = trickle
     this.offset = 0
@@ -96,16 +102,16 @@ class SlowStream extends stream.Stream {
     this.paused = false
   }
 
-  write () {
+  write() {
     throw new Error('not implemented, just call ss.end(chunk)')
   }
 
-  pause () {
+  pause() {
     this.paused = true
     this.emit('pause')
   }
 
-  resume () {
+  resume() {
     const emit = () => {
       if (this.paused) return
       if (this.offset >= this.length) {
@@ -126,7 +132,7 @@ class SlowStream extends stream.Stream {
     emit()
   }
 
-  end (chunk) {
+  end(chunk) {
     // walk over the chunk in blocks.
     this.chunk = chunk
     this.length = chunk.length
@@ -135,19 +141,22 @@ class SlowStream extends stream.Stream {
   }
 }
 
-
 // for each of the files, make sure that compressing and
 // decompressing results in the same data, for every combination
 // of the options set above.
-let failures = 0
-let total = 0
 let done = 0
 
-
-const runTest =
-  ( t, file, chunkSize, trickle, windowBits,
-    level, memLevel, strategy, pair ) => {
-
+const runTest = (
+  t,
+  file,
+  chunkSize,
+  trickle,
+  windowBits,
+  level,
+  memLevel,
+  strategy,
+  pair,
+) => {
   const test = tests[file]
   const Def = pair[0]
   const Inf = pair[1]
@@ -155,7 +164,7 @@ const runTest =
     level: level,
     windowBits: windowBits,
     memLevel: memLevel,
-    strategy: strategy
+    strategy: strategy,
   }
 
   const def = new Def(opts)
@@ -164,7 +173,7 @@ const runTest =
   const buf = new BufferStream()
 
   // verify that the same exact buffer comes out the other end.
-  buf.on('data', function(c) {
+  buf.on('data', function (c) {
     const msg = file
     let ok = true
     const testNum = ++done
@@ -182,7 +191,8 @@ const runTest =
       options: opts,
       expect: test[i],
       actual: c[i],
-      chunkSize: chunkSize
+      chunkSize: chunkSize,
+      testNum,
     })
     t.end()
   })
@@ -211,9 +221,17 @@ Object.keys(tests).forEach(file => {
                           t.test('strategy=' + strategy, t => {
                             zlibPairs.forEach((pair, pairIndex) => {
                               t.test('pair=' + pairIndex, t => {
-                                runTest(t, file, chunkSize, trickle,
-                                        windowBits, level, memLevel,
-                                        strategy, pair)
+                                runTest(
+                                  t,
+                                  file,
+                                  chunkSize,
+                                  trickle,
+                                  windowBits,
+                                  level,
+                                  memLevel,
+                                  strategy,
+                                  pair,
+                                )
                               })
                             })
                             t.end()

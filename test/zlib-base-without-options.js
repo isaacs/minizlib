@@ -1,11 +1,11 @@
 // this should be pretty hard to hit, since the class isn't exposed,
 // but just in case, it checks, so we should test that check.
-const zlib = require('../')
-const ZlibBase = Object.getPrototypeOf(Object.getPrototypeOf(
-  zlib.Unzip.prototype
-)).constructor
+import t from 'tap'
+import { Unzip } from '../dist/esm/index.js'
 
-const t = require('tap')
+const ZlibBase = Object.getPrototypeOf(
+  Object.getPrototypeOf(Unzip.prototype),
+).constructor
 
 t.throws(() => new ZlibBase(), {
   message: 'invalid options for ZlibBase constructor',

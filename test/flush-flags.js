@@ -1,10 +1,9 @@
-'use strict'
-const t = require('tap')
-const zlib = require('../')
+import t from 'tap'
+import { Gzip, constants } from '../dist/esm/index.js'
 
-t.doesNotThrow(_ => new zlib.Gzip({ flush: zlib.constants.Z_SYNC_FLUSH }))
-t.throws(_ => new zlib.Gzip({ flush: 'foobar' }))
-t.throws(_ => new zlib.Gzip({ flush: 10000 }))
-t.doesNotThrow(_ => new zlib.Gzip({ finishFlush: zlib.constants.Z_SYNC_FLUSH }))
-t.throws(_ => new zlib.Gzip({ finishFlush: 'foobar' }))
-t.throws(_ => new zlib.Gzip({ finishFlush: 10000 }))
+t.doesNotThrow(_ => new Gzip({ flush: constants.Z_SYNC_FLUSH }))
+t.throws(_ => new Gzip({ flush: 'foobar' }))
+t.throws(_ => new Gzip({ flush: 10000 }))
+t.doesNotThrow(_ => new Gzip({ finishFlush: constants.Z_SYNC_FLUSH }))
+t.throws(_ => new Gzip({ finishFlush: 'foobar' }))
+t.throws(_ => new Gzip({ finishFlush: 10000 }))
