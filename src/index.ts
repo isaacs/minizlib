@@ -277,13 +277,13 @@ abstract class ZlibBase extends Minipass<Buffer, ChunkWithFlushFlag> {
 }
 
 export type ZlibOptions = ZlibBaseOptions & {
-  level: number
-  strategy: number
+  level?: number
+  strategy?: number
 }
 
 export class Zlib extends ZlibBase {
-  #level: number
-  #strategy: number
+  #level?: number
+  #strategy?: number
 
   constructor(opts: ZlibOptions, mode: ZlibMode) {
     opts = opts || {}
