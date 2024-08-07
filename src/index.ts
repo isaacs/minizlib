@@ -1,7 +1,7 @@
 import assert from 'assert'
 import { Buffer } from 'buffer'
 import { Minipass } from 'minipass'
-import realZlib from 'zlib'
+import * as realZlib from 'zlib'
 import { constants } from './constants.js'
 export { constants } from './constants.js'
 
