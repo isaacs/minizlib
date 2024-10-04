@@ -34,7 +34,6 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.11.29",
-    "mkdirp": "^3.0.1",
     "tap": "^18.7.1",
     "tshy": "^1.12.0",
     "typedoc": "^0.25.12"

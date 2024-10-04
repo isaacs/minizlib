@@ -6,13 +6,12 @@ import t from 'tap'
 import { BrotliDecompress } from '../dist/esm/index.js'
 import fs from 'node:fs'
 import { resolve, basename } from 'path'
-import { mkdirpSync as mkdirp } from 'mkdirp'
 import { fileURLToPath } from 'url'
 
 const tmpdir = fileURLToPath(
   new URL(basename(import.meta.url, '.js'), import.meta.url),
 )
-mkdirp(tmpdir)
+fs.mkdirSync(tmpdir, {recursive: true})
 t.teardown(() => fs.rmSync(tmpdir, {recursive: true, force: true}))
 
 const decompress = new BrotliDecompress()
