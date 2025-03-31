@@ -1,3 +1,4 @@
 /dist/
 /.tap
 /node_modules/
+/docs
