@@ -4,7 +4,7 @@
   "description": "A small fast zlib stream built on [minipass](http://npm.im/minipass) and Node.js's zlib binding.",
   "main": "./dist/commonjs/index.js",
   "dependencies": {
-    "minipass": "^7.0.4"
+    "minipass": "^7.1.2"
   },
   "scripts": {
     "prepare": "tshy",
@@ -33,10 +33,10 @@
   "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^20.11.29",
+    "@types/node": "^22.13.14",
     "tap": "^21.1.0",
     "tshy": "^3.0.2",
-    "typedoc": "^0.25.12"
+    "typedoc": "^0.28.1"
   },
   "files": [
     "dist"
