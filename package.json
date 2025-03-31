@@ -4,8 +4,7 @@
   "description": "A small fast zlib stream built on [minipass](http://npm.im/minipass) and Node.js's zlib binding.",
   "main": "./dist/commonjs/index.js",
   "dependencies": {
-    "minipass": "^7.0.4",
-    "rimraf": "^5.0.5"
+    "minipass": "^7.0.4"
   },
   "scripts": {
     "prepare": "tshy",
@@ -35,9 +34,8 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.11.29",
-    "mkdirp": "^3.0.1",
-    "tap": "^18.7.1",
-    "tshy": "^1.12.0",
+    "tap": "^21.1.0",
+    "tshy": "^3.0.2",
     "typedoc": "^0.25.12"
   },
   "files": [
@@ -77,5 +75,6 @@
     "bracketSameLine": true,
     "arrowParens": "avoid",
     "endOfLine": "lf"
-  }
+  },
+  "module": "./dist/esm/index.js"
 }

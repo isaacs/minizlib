@@ -5,16 +5,10 @@
 import t from 'tap'
 import { BrotliDecompress } from '../dist/esm/index.js'
 import fs from 'fs'
-import { resolve, basename } from 'path'
-import { mkdirpSync as mkdirp } from 'mkdirp'
-import { rimrafSync as rimraf } from 'rimraf'
+import { resolve } from 'path'
 import { fileURLToPath } from 'url'
 
-const tmpdir = fileURLToPath(
-  new URL(basename(import.meta.url, '.js'), import.meta.url),
-)
-mkdirp(tmpdir)
-t.teardown(() => rimraf(tmpdir))
+const tmpdir = t.testdir({})
 
 const decompress = new BrotliDecompress()
 
