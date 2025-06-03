@@ -41,6 +41,8 @@ provided by that class.
 - Unzip
 - BrotliCompress (Node v10 and higher)
 - BrotliDecompress (Node v10 and higher)
+- ZstdCompress (Node v22.15 and higher)
+- ZstdDecompress (Node v22.15 and higher)
 
 ## USAGE
 
