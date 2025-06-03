@@ -67,6 +67,7 @@ export type ZlibHandle =
   | realZlib.DeflateRaw
   | realZlib.InflateRaw
 export type BrotliMode = 'BrotliCompress' | 'BrotliDecompress'
+export type ZstdMode = 'ZstdCompress' | 'ZstdDecompress'
 
 abstract class ZlibBase extends Minipass<Buffer, ChunkWithFlushFlag> {
   #sawError: boolean = false
@@ -89,7 +90,7 @@ abstract class ZlibBase extends Minipass<Buffer, ChunkWithFlushFlag> {
   }
   /* c8 ignore stop */
 
-  constructor(opts: ZlibBaseOptions, mode: ZlibMode | BrotliMode) {
+  constructor(opts: ZlibBaseOptions, mode: ZlibMode | BrotliMode | ZstdMode) {
     if (!opts || typeof opts !== 'object')
       throw new TypeError('invalid options for ZlibBase constructor')
 
@@ -437,5 +438,28 @@ export class BrotliCompress extends Brotli {
 export class BrotliDecompress extends Brotli {
   constructor(opts: ZlibOptions) {
     super(opts, 'BrotliDecompress')
+  }
+}
+
+export class Zstd extends ZlibBase {
+  constructor(opts: ZlibOptions, mode: ZstdMode) {
+    opts = opts || {}
+
+    opts.flush = opts.flush || constants.ZSTD_e_continue
+    opts.finishFlush = opts.finishFlush || constants.ZSTD_e_end
+    opts.fullFlushFlag = constants.ZSTD_e_flush
+    super(opts, mode)
+  }
+}
+
+export class ZstdCompress extends Zstd {
+  constructor(opts: ZlibOptions) {
+    super(opts, 'ZstdCompress')
+  }
+}
+
+export class ZstdDecompress extends Zstd {
+  constructor(opts: ZlibOptions) {
+    super(opts, 'ZstdDecompress')
   }
 }
