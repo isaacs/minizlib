@@ -20,15 +20,15 @@ const _superWrite = Symbol('_superWrite')
 export class ZlibError extends Error {
   code?: string
   errno?: number
-  constructor(err: NodeJS.ErrnoException | Error) {
-    super('zlib: ' + err.message)
+  constructor(err: NodeJS.ErrnoException | Error, origin?: Function) {
+    super('zlib: ' + err.message, { cause: err })
     this.code = (err as NodeJS.ErrnoException).code
     this.errno = (err as NodeJS.ErrnoException).errno
     /* c8 ignore next */
     if (!this.code) this.code = 'ZLIB_ERROR'
 
     this.message = 'zlib: ' + err.message
-    Error.captureStackTrace(this, this.constructor)
+    Error.captureStackTrace(this, origin ?? this.constructor)
   }
 
   get name() {
@@ -51,6 +51,18 @@ export type ZlibBaseOptions = Minipass.Options<Minipass.ContiguousData> & {
   finishFlush?: number
   fullFlushFlag?: number
 }
+
+export type ZlibHandle =
+  | realZlib.Gzip
+  | realZlib.Gunzip
+  | realZlib.Deflate
+  | realZlib.Inflate
+  | realZlib.DeflateRaw
+  | realZlib.InflateRaw
+  | realZlib.BrotliCompress
+  | realZlib.BrotliDecompress
+  | realZlib.ZstdCompress
+  | realZlib.ZstdDecompress
 export type ZlibMode =
   | 'Gzip'
   | 'Gunzip'
@@ -59,13 +71,6 @@ export type ZlibMode =
   | 'DeflateRaw'
   | 'InflateRaw'
   | 'Unzip'
-export type ZlibHandle =
-  | realZlib.Gzip
-  | realZlib.Gunzip
-  | realZlib.Deflate
-  | realZlib.Inflate
-  | realZlib.DeflateRaw
-  | realZlib.InflateRaw
 export type BrotliMode = 'BrotliCompress' | 'BrotliDecompress'
 export type ZstdMode = 'ZstdCompress' | 'ZstdDecompress'
 
@@ -103,6 +108,11 @@ abstract class ZlibBase extends Minipass<Buffer, ChunkWithFlushFlag> {
     this.#fullFlushFlag = opts.fullFlushFlag ?? 0
     /* c8 ignore stop */
 
+    //@ts-ignore
+    if (typeof realZlib[mode] !== 'function') {
+      throw new TypeError('Compression method not supported: ' + mode)
+    }
+
     // this will throw if any options are invalid for the class selected
     try {
       // @types/node doesn't know that it exports the classes, but they're there
@@ -110,7 +120,7 @@ abstract class ZlibBase extends Minipass<Buffer, ChunkWithFlushFlag> {
       this.#handle = new realZlib[mode](opts)
     } catch (er) {
       // make sure that all errors get decorated properly
-      throw new ZlibError(er as NodeJS.ErrnoException)
+      throw new ZlibError(er as NodeJS.ErrnoException, this.constructor)
     }
 
     this.#onError = err => {
@@ -245,7 +255,7 @@ abstract class ZlibBase extends Minipass<Buffer, ChunkWithFlushFlag> {
       // or if we do, put Buffer.concat() back before we emit error
       // Error events call into user code, which may call Buffer.concat()
       passthroughBufferConcat(false)
-      this.#onError(new ZlibError(err as NodeJS.ErrnoException))
+      this.#onError(new ZlibError(err as NodeJS.ErrnoException, this.write))
     } finally {
       if (this.#handle) {
         // Core zlib resets `_handle` to null after attempting to close the
@@ -263,7 +273,7 @@ abstract class ZlibBase extends Minipass<Buffer, ChunkWithFlushFlag> {
     }
 
     if (this.#handle)
-      this.#handle.on('error', er => this.#onError(new ZlibError(er)))
+      this.#handle.on('error', er => this.#onError(new ZlibError(er, this.write)))
 
     let writeReturn
     if (result) {
@@ -417,7 +427,7 @@ export class Unzip extends Zlib {
   }
 }
 
-export class Brotli extends ZlibBase {
+class Brotli extends ZlibBase {
   constructor(opts: ZlibOptions, mode: BrotliMode) {
     opts = opts || {}
 
@@ -441,7 +451,7 @@ export class BrotliDecompress extends Brotli {
   }
 }
 
-export class Zstd extends ZlibBase {
+class Zstd extends ZlibBase {
   constructor(opts: ZlibOptions, mode: ZstdMode) {
     opts = opts || {}
 
