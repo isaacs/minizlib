@@ -11,6 +11,12 @@ const noop = (args: Buffer[]) => args as unknown as Buffer
 const passthroughBufferConcat =
   desc?.writable === true || desc?.set !== undefined
     ? (makeNoOp: boolean) => {
+        // Writability is sampled again. Freezing concat after load must
+        // not throw out of write(); the real concat still returns bytes.
+        const current = Object.getOwnPropertyDescriptor(Buffer, 'concat')
+        if (current?.writable !== true && current?.set === undefined) {
+          return
+        }
         Buffer.concat = makeNoOp ? noop : OriginalBufferConcat
       }
     : (_: boolean) => {}
